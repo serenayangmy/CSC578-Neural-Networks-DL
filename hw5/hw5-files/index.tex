@@ -1,0 +1,397 @@
+% Created 2020-10-18 Sun 19:38
+% Intended LaTeX compiler: pdflatex
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{grffile}
+\usepackage{longtable}
+\usepackage{wrapfig}
+\usepackage{rotating}
+\usepackage[normalem]{ulem}
+\usepackage{amsmath}
+\usepackage{textcomp}
+\usepackage{amssymb}
+\usepackage{capt-of}
+\usepackage{hyperref}
+\usepackage[margin=1in]{geometry}
+\author{Fall 2020}
+\date{}
+\title{CSC 578 HW 5: Backprop Hyper-Parameters}
+\begin{document}
+
+\maketitle
+(Version 0.01, with much credit again to Prof. Tomuro)
+
+\textbf{Graded out of 10 points.}
+
+Do all questions
+
+\href{./hw5-files.zip}{Here is a zip file with all of the files for this homework}
+
+\noindent\rule{\textwidth}{0.5pt}
+\section*{Overview}
+\label{sec:org1aeeb50}
+
+Similar to HW\#3, you make required modifications to the NNDL book code and write a small application code.  The objective of the assignment is to enhance you understanding of some of the hyper-parameters of neural networks.
+
+The original NNDL code "network2.py" is hard-coding several things, including the sigmoid activation function, L2 regularization and the input data format (for MNIST).  In this assignment, we make the code general so that it (implements and) accepts various hyper-parameters as (literally) parameters of the network.
+
+For the application code, you do some systematic experiments that test various combinations of the hyper-parameter values.
+
+\textbf{Note:} This homework is not as tightly specified as HW\#3.  You may need to \textbf{do your own research} to find out how best to implement a few things.
+
+\noindent\rule{\textwidth}{0.5pt}
+\section*{1. Network Code (in \href{./NN578\_network2.py}{NN578\_network2.py})}
+\label{sec:orgf9065fa}
+
+\subsection*{Intro}
+\label{sec:orgba83851}
+For this part, you will need to make modifications to the Network Code, adding some hyper-parameters and modifying some functions.
+
+\begin{itemize}
+\item (A) Hyper-parameters:
+
+\begin{itemize}
+\item Cost function
+\begin{itemize}
+\item QuadraticCost, CrossEntropy, LogLikelihood
+\end{itemize}
+\item Activation function
+\begin{itemize}
+\item Sigmoid, Tanh, ReLU, Softmax
+\end{itemize}
+\item Regularization
+\begin{itemize}
+\item L1 and L2
+\end{itemize}
+\item Dropout rate
+\end{itemize}
+
+\item (B) Functions to modify (minimally):
+
+\begin{itemize}
+\item set\_parameters()
+\item feedforward()
+\item backprop()
+\item update\_mini\_batch()
+\item total\_cost()
+\end{itemize}
+\end{itemize}
+
+Note that you may need to modify other functions additionally to implement Dropout.
+
+\noindent\rule{\textwidth}{0.5pt}
+
+\subsection*{(A) Hyper-parameters}
+\label{sec:org7b2a97a}
+Hyper-parameters are passed in through keyword arguments in the constructor/init (\textbf{cost, act\_hidden, act\_output, regularization}, and \textbf{dropoutpercent}). The values are stored in the (additional) instance variables as shown below:
+\begin{verbatim}
+## Additional keyword arguments for hyper-parameters
+def __init__(self, sizes, cost=CrossEntropyCost, act_hidden=Sigmoid,
+             act_output=None, regularization=None, lmbda=0.0,
+             dropoutpercent=0.0):
+    """The list ``sizes`` contains the number of neurons in the respective
+    layers of the network.  For example, if the list was [2, 3, 1]
+    then it would be a three-layer network, with the first layer
+    containing 2 neurons, the second layer 3 neurons, and the
+    third layer 1 neuron.  The biases and weights for the network
+    are initialized randomly, using
+    ``self.default_weight_initializer`` (see docstring for that method).
+    """
+    self.num_layers = len(sizes)
+    self.sizes = sizes
+    self.default_weight_initializer()
+
+    self.set_parameters(cost, act_hidden, act_output, regularization, lmbda,
+                        dropoutpercent)
+
+## nt: THIS NEEDS CHANGE.
+## nt: convenience function for setting network hyperparameters
+def set_parameters(self, cost=QuadraticCost, act_hidden=Sigmoid,
+                   act_output=None, regularization=None, lmbda=0.0,
+                   dropoutpercent=0.0):
+    self.cost=cost
+    self.act_hidden = act_hidden
+    if act_output == None:
+        self.act_output = self.act_hidden
+    else:
+        self.act_output = act_output
+    self.regularization = regularization
+    self.lmbda = lmbda
+    self.dropoutpercent = dropoutpercent
+\end{verbatim}
+
+\subsubsection*{1. cost}
+\label{sec:orgb44740b}
+\begin{itemize}
+\item This hyper-parameter argument specifies the cost function.
+\item Options are 'QuadraticCost', 'CrossEntropy', 'LogLikelihood'.
+
+\item Each one must be implemented as a class.  The scheme for class function is explained later in this document (see \hyperref[sec:org77df2bb]{Class Function notes} below).
+\item The class should have two static functions: \textbf{fn()} executes the definition of the function (to compute the cost in during evaluation), and \textbf{derivative()} executes the function's derivative (to compute the error during learning).  No other function such as delta() should be defined in the class because they are not necessary for this assignment.
+\begin{enumerate}
+\item \textbf{QuadraticCost} is fully implemented already in the starter code, as shown below (and you do not need to modify it).
+\item \textbf{CrossEntropy} is partially written (by taking fn() from the original NNDL code "network2.py").  You must add \textbf{derivative()}.
+\item You will write a whole class \textbf{LogLikelihood}.
+\end{enumerate}
+\begin{verbatim}
+class QuadraticCost(object):
+
+    @staticmethod
+    def fn(a, y):
+        """Return the cost associated with an output ``a``
+        and desired output ``y``.
+        """
+        return 0.5*np.linalg.norm(y-a)**2
+
+    ## nt: addition
+    @staticmethod
+    def derivative(a, y):
+        """Return the first derivative of the function."""
+        return -(y-a)
+
+class CrossEntropyCost(object):
+
+    @staticmethod
+    def fn(a, y):
+        """Return the cost associated with an output ``a`` 
+        and desired output ``y``.
+        """
+        return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
+
+    @staticmethod
+    def derivative(a, y):
+        """Return the first derivative of the function."""
+        ###
+        ### YOU WRITE YOUR CODE HERE
+        ###
+\end{verbatim}
+\end{itemize}
+
+
+\begin{itemize}
+\item Both functions receive \texttt{a} (activation) and \texttt{y} (target output), which are from one data instance and represented by column vectors.
+\item \texttt{fn()} returns a \textbf{scalar}, while \texttt{derivative()} returns a \textbf{column vector} (containing the cost derivative for each node in the output layer; no multiplication by the derivative of the activation function).
+
+\item \uline{NOTES on \textbf{LogLikelihood}}:
+\begin{enumerate}
+\item This cost function should really be used when \textbf{'act\_output'} (the activation function of the output layer) = \textbf{'Softmax'}.  You can check for it if you like (and print warning or abort execution, for instance), but that's not a requirement for the homework.
+\item For its function and derivative formula, you can look at the \href{https://depaul.zoom.us/rec/play/-9zBvchXodIQ6F1wN-eVXaAyOZpdjHMcA\_4BT6tPrXkkqEQb9frddpOd8p0FfTy7Zl5l4Zj8foa3Gp2O.cwaBIuqKYIq9Kojv?continueMode=true\&\_x\_zm\_rtaid=0hXVYogNTWeL\_9zcHvWxRA.1603064569512.dec1409ec0c39f5fdf363070d27a6cee\&\_x\_zm\_rhtaid=174}{week 3 video} at about 2:11 in.  For \texttt{derivative()}, you compute the derivative of the node for which the target output is 1.  For other nodes, the value should be 0.
+\end{enumerate}
+\end{itemize}
+
+\subsubsection*{2. act\_hidden}
+\label{sec:org913a774}
+\begin{itemize}
+\item This parameter specifies the activation function for nodes on \textbf{all} hidden layers, but EXCLUDING the output layer.
+\item Parameter options are 'Sigmoid', 'Tanh', 'ReLU', 'Softmax'.
+
+\item Each one must be implemented as a class (see \hyperref[sec:org77df2bb]{Class Function notes} below).  The class should have two functions: a static method \textbf{\texttt{fn()}} executes the definition of the function (to compute the node activation value), and a class method \textbf{\texttt{derivative()}} executes the function's derivative (to compute the error during learning).
+
+\begin{enumerate}
+\item \textbf{\texttt{Sigmoid}} is fully implemented already in the starter code, as shown below (and you do not need to modify it).
+\item \textbf{\texttt{Softmax}} is partially written.  You must add \textbf{\texttt{derivative()}}.  Note that, since its derivative (already written) returns a 2D matrix instead of a vector (\href{https://medium.com/@aerinykim/how-to-implement-the-softmax-derivative-independently-from-any-loss-function-ae6d44363a9d}{reference}), it is handled differently in computing the error/delta in \texttt{backprop()}.  See \hyperref[sec:org77df2bb]{Class Function notes} below.  But for the purpose of writing the class, you only fill in the definition of the function in \textbf{\texttt{fn()}}.
+\item For \textbf{Tanh}, a skeleton class is already written.  You complete the class.
+\item You write a whole class for \textbf{ReLU}.
+\end{enumerate}
+
+\begin{verbatim}
+class Sigmoid(object):    
+    @staticmethod
+    def fn(z):
+        """The sigmoid function."""
+        return 1.0/(1.0+np.exp(-z))
+
+    @classmethod
+    def derivative(cls,z):
+        """Derivative of the sigmoid function."""
+        return cls.fn(z)*(1-cls.fn(z))
+
+class Softmax(object):
+    @staticmethod
+    # Parameter z is an array of shape (len(z), 1).
+    def fn(z):
+        """The softmax of vector z."""
+        ###
+        ### YOU WRITE YOUR CODE HERE
+        ###
+
+    @classmethod
+    def derivative(cls,z):
+        """Derivative of the softmax.  
+        IMPORTANT: The derivative is an N*N matrix.
+        """
+        a = cls.fn(z) # obtain the softmax vector
+        return np.diagflat(a) - np.dot(a, a.T)
+\end{verbatim}
+
+For those functions, you can look at the \href{https://depaul.zoom.us/rec/play/-9zBvchXodIQ6F1wN-eVXaAyOZpdjHMcA\_4BT6tPrXkkqEQb9frddpOd8p0FfTy7Zl5l4Zj8foa3Gp2O.cwaBIuqKYIq9Kojv?continueMode=true\&\_x\_zm\_rtaid=0hXVYogNTWeL\_9zcHvWxRA.1603064569512.dec1409ec0c39f5fdf363070d27a6cee\&\_x\_zm\_rhtaid=174}{Recorded zoom session} from Week 3 (about 1:10 in) and/or the Review slides from Week 4 for the definitions.
+
+Note that, although Softmax is almost never used for hidden layers, we do not have to disallow it in this homework.
+\end{itemize}
+
+\subsubsection*{3. act\_output}
+\label{sec:org62ec159}
+\begin{itemize}
+\item This parameter specifies the activation function for nodes on the output layer.
+\item Parameter options are 'Sigmoid', 'Tanh' and 'Softmax'. 
+
+\uline{NOTES on Tanh}:  If Tanh is selected as the activation function for the output layer:
+\begin{enumerate}
+\item Because the output value will be between 1 and -1 (instead of 1 and 0), the only cost function that goes with Tanh is the quadratic cost.  So if the cost function was set to anything besides 'QuadraticCost', change/overwrite the cost function to QuadraticCost and print a warning (to the user, e.g. "Tanh only accepts 'QuadraticCost' cost function.  Changing to QuadraticCost..").  \textbf{You must add code to do it by yourself}, in \texttt{set\_parameters()}.
+
+\item Note that, in the network startup code (\href{./NN578\_network2.py}{NN578\_network2.py}), some code is added (in \texttt{SGD()}) that changes the dataset when the output layer's activation is Tanh, in particular to make the target y values to be 1 or -1 (instead of 1 or 0).  It is already written for you, so you don't need to be concerned about the data.
+\end{enumerate}
+\end{itemize}
+
+\subsubsection*{4. regularization:}
+\label{sec:org0a83846}
+\begin{itemize}
+\item This parameter specifies the regularization method.
+\item Parameter options are 'L2' and 'L1'.
+\item The selected method is applied to all hidden layers and the output layer.
+
+\item You can implement them in any way you like, for example as function classes or inline if-else conditionals.  For definitions/formulas and explanation, see the \href{https://depaul.zoom.us/rec/share/HUia84Y0b\_OkQT2c9n39dGkUlyvNU0LqtmnnCz7gQ0vJ50hF\_up4sU0YWa4ABBQ.SS5hVQmvqRtOWFPa}{Avoiding overfitting} video from Week 3 or the review slides from Week 4.
+
+\uline{IMPORTANT}: The start-up code has L2 hard-coded in (unchanged from the original NNDL code for this part).  \textbf{You make necessary changes to the code by yourself} to incorporate the two methods.
+\item The regularization is relevant at two places in the backprop algorithm:
+\begin{enumerate}
+\item During training, when weights are adjusted at the end of a mini-bath -- the function \texttt{update\_mini\_batch()}.
+\item During evaluation, when the cost is computed -- the function \texttt{total\_cost()}.
+\end{enumerate}
+
+NOTE: Both of those functions have the parameter \textbf{lmbda}, passed in from the function \texttt{SGD()}.  You utilize its value in implementing the regularizations.
+\end{itemize}
+
+\subsubsection*{5. dropoutpercent}
+\label{sec:orge14d810}
+\begin{itemize}
+\item This parameter specifies the percentage of dropout.
+\item The value is between 0 and 1.  For example, 0.4 means 40\% of the nodes on a layer are dropped (or made inaccessible).
+\item Dropout consists in randomly setting a fraction rate of units in a layer to 0 at each update during training time, which helps prevent overfitting.
+\item Assume the same dropout percentage is applied to \textbf{all hidden layers}.  \emph{Dropout should not be applied to input or output layer.}
+\item You can implement the parameter in any way you like.  \textbf{You make necessary changes to the code by yourself, wherever needed.}
+\item Many dropout schemes have been proposed in neural networks.  For this assignment, you implement the following scheme.
+\begin{enumerate}
+\item Dropout is applied during the \textbf{training phase only}.  No dropout is applied during the testing/evaluation phrase.
+\item Use the same dropout nodes during one \textbf{mini-batch}.  That means you have to store which nodes were used/dropped somewhere else.  Think about it and implement in your way.
+\item \textbf{Scale} the output values of the layer.  This scheme is explained at \href{https://wiseodd.github.io/techblog/2016/06/25/dropout/}{this site}.  In particular, the following code is very useful. The first line is generating a dropout mask (\texttt{u1}) and the second line is applying the mask to the activation of a hidden layer (\texttt{h1}) during the \textbf{forward} propagation phase in the backprop function.
+\begin{verbatim}
+# Dropout training, notice the scaling of 1/p
+u1 = np.random.binomial(1, p, size=h1.shape) / p
+h1 *= u1
+\end{verbatim}
+
+Then during the \textbf{backward} propagation phase, you apply the mask to the delta of a hidden layer (\texttt{dh1}).    This is necessary because, since a dropout mask is applied as an additional multiplier (function) after the activation function, it essentially became a constant coefficient of the activation function (i.e., \texttt{c*a(z)}), and shows up in the derivative of that function --  Let \(f(z) = c*a(z)\), then \(f'(z) = c*a'(z)\).
+
+\begin{verbatim}
+dh1 *= u1 
+\end{verbatim}
+
+\uline{IMPORTANT NOTES}:
+
+\begin{itemize}
+\item The variable \texttt{p} above is the ratio of nodes to RETAIN, not to remove.   So essentially, \texttt{p = 1 - self.dropoutpercent}.
+\item \texttt{np.random.binomial()} is \textbf{probabilistic}, so does not guarantee the p proportion of success.  But for the purpose of the assignment, it's fine to use it (i.e., the code above).  However, if you like to implement correctly, you can use \texttt{random.sample()} method in Python's standard library.
+\item During forward propagation, dropout should be applied to/after \textbf{activation}, NOT to the z/weighted sum (e.g. sigma(0) = 0.5, which is not right or convenient here).
+\item During backward propagation, dropout should be applied to the delta (the error at a given hidden layer).
+\end{itemize}
+\end{enumerate}
+\end{itemize}
+
+
+
+\subsubsection*{Class Function notes}
+\label{sec:org77df2bb}
+
+Static or class functions in a class can be called through the class name.  When a class name is bound to an instance variable, you can invoke a specific static/class function in the class by prefixing the instance variable.  For example, here is a line in the function \texttt{backprop()}:
+
+\begin{verbatim}
+a_prime = (self.act_output).derivative(zs[-1])
+\end{verbatim}
+
+So whatever \texttt{self.act\_output} is bound to (e.g. Sigmoid, Tanh, ReLU), the function \texttt{derivative()} defined inside the class is being invoked.
+
+\subsection*{(B) Functions to modify.}
+\label{sec:org9f8af38}
+
+In addition to \texttt{set\_parameters(), feedforward(), backprop(), update\_mini\_batch()} and \texttt{total\_cost()}, you need to modify other parts of the code to implement \textbf{dropout}.  It's up to you to figure out and decide. 
+
+\emph{Whatever you did, you should \textbf{describe and explain} it in the documentation.}  You may not get full points if modifications you made were not explained sufficiently.
+
+
+\section*{2. Application code (Start-up code: \href{./578hw5.ipynb}{578hw5.ipynb},html: \href{./578hw5.html}{578hw5.html})}
+\label{sec:org13dcc25}
+
+Write Jupyter Notebook code to do these experiments using the iris dataset.  Ensure your code works for each experiment, and show the output in an Jupyter notebook.
+
+Just like HW\#3, use the iris dataset \href{./iris.csv}{iris.csv} and the \href{./iris-423.dat}{iris-423.dat} network file to create an initial network.  You may play with the learning rate (eta / \(\eta\)) and mini\_batch size on your own.
+
+Do the following experiments.  For each experiment, train the network using \href{./iris-train-1.csv}{iris-train-1.csv} for \textbf{15 epochs} (only) and test it using \href{./iris-test-1.csv}{iris-test-1.csv}.
+
+Note the output results in the right-most column were generated on \href{https://labs.cognitiveclass.ai/}{IBM CognitiveClassLab}.
+
+\begin{center}
+\begin{tabular}{rllllrrl}
+ & act\_hidden & act\_output & cost & regularization & lmbda & dropout & OUTPUT\\
+\hline
+1 & Sigmoid & Sigmoid & Quadratic & (default) & 0.0 & 0.0 & \href{./Result-1.txt}{Result-1.txt}\\
+2 & Sigmoid & Sigmoid & CrossEntropy & (default) & 0.0 & 0.0 & \href{./Result-2.txt}{Result-2.txt}\\
+3 & Sigmoid & Softmax & CrossEntropy & (default) & 0.0 & 0.0 & \href{./Result-3.txt}{Result-3.txt}\\
+4 & Sigmoid & Softmax & LogLikelihood & (default) & 0.0 & 0.0 & \href{./Result-4.txt}{Result-4.txt}\\
+5 & ReLU & Softmax & CrossEntropy & (default) & 0.0 & 0.0 & \href{./Result-5.txt}{Result-5.txt}\\
+6 & ReLU & Softmax & LogLikelihood & (default) & 0.0 & 0.0 & \href{./Result-6.txt}{Result-6.txt}\\
+7 & Tanh & Sigmoid & Quadratic & (default) & 0.0 & 0.0 & \href{./Result-7.txt}{Result-7.txt}\\
+8 & Tanh & Tanh & Quadratic & (default) & 0.0 & 0.0 & \href{./Result-8.txt}{Result-8.txt}\\
+9 & Sigmoid & Sigmoid & Quadratic & L2 & 3.0 & 0.0 & \href{./Result-9.txt}{Result-9.txt}\\
+10 & Sigmoid & Sigmoid & Quadratic & L1 & 3.0 & 0.0 & \href{./Result-10.txt}{Result-10.txt}\\
+\end{tabular}
+\end{center}
+
+For the experiments below, use \href{./iris4-20-7-3.dat}{iris4-20-7-3.dat}. Note that results may vary for these experiments because dropout nodes are randomly (but probabilistically) chosen.
+
+\begin{center}
+\begin{tabular}{rllllrrl}
+ & act\_hidden & act\_output & cost & regularization & lmbda & dropout & OUTPUT\\
+\hline
+11 & Sigmoid & Sigmoid & Quadratic & (default) & 0.0 & 0.1 & \href{./Result-11.txt}{Result-11.txt}\\
+12 & Sigmoid & Sigmoid & Quadratic & (default) & 0.0 & 0.5 & \href{./Result-12.txt}{Result-12.txt}\\
+\end{tabular}
+\end{center}
+
+Note that those are the absolute minimal experiments.  Although not required for this homework, you should try other combinations of hyper-parameters to test your code more thoroughly and rigorously.
+
+\noindent\rule{\textwidth}{0.5pt}
+\section*{Submission}
+\label{sec:orge96bef3}
+
+
+
+\begin{enumerate}
+\item Completed "NN578\_network2.py", and the application Notebook file and its html version.  Be sure to add your \textbf{name, course/section number} and the \textbf{assignment name} at the top of all code files.
+\item Documentation. 
+\begin{itemize}
+\item \textbf{In pdf only.}
+\item A \emph{minimum} of 2.0 pages (i.e., two pages filled, and some in the next page).
+\item Write as much as you can.  I consider terse answers insufficient, therefore won't give a full credit when I grade.
+\item Create a presentable document. Don't make me work hard to find the information I asked for. (There are a lot of these to read.)
+\item Content should include:
+\begin{itemize}
+\item Your \textbf{name, course/section number} and the \textbf{assignment name} at the top of the file.
+\item Then, in separate, labeled sections, include:
+\begin{description}
+\item[{Experiment results}] Whether or not your results for the first \textbf{10 experiments} in the 'Application code' section above matched with the given results.  If your results were different, describe the discrepancies and what you speculated the discrepancies came from.
+\item[{Implementation}] Explain how you implemented each of the requirements, and for each if they were \textbf{Complete}, meaning you did the code and verified that it worked; \textbf{Not attempted}, meaning you didn't get there; or \textbf{Partial}, meaning that you have some code but it did not completely work, and explain why.  Give as detailed explanations as possible.  In particular, be sure to explain everything you did to implement Dropout correctly.
+\item[{Reflections}] Your reaction and reflection on this assignment overall (e.g. difficulty level, challenges you had).
+\end{description}
+\end{itemize}
+\item Write as much as you can.  Try to make a \textbf{thorough and well-organized report}.  It's not to impress me; it's for your exercise.
+\item Also some kind of graphs/plots are nice (to make a more professional presentation), although no extra credits are given this time.
+\end{itemize}
+\end{enumerate}
+
+
+
+DO NOT Zip the files -- Submit files separately.
+\end{document}

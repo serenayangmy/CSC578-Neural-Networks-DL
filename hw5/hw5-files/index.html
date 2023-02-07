@@ -1,0 +1,886 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2020-10-18 Sun 19:19 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CSC 578 HW 5: Backprop Hyper-Parameters</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Fall 2020" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<link rel="stylesheet" type="text/css" href="../assignstyles.css" />
+<script type="text/javascript">
+// @license magnet:?xt=urn:btih:e95b018ef3580986a04669f1b5879592219e2a7a&dn=public-domain.txt Public Domain
+<!--/*--><![CDATA[/*><!--*/
+     function CodeHighlightOn(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.add("code-highlighted");
+         target.classList.add("code-highlighted");
+       }
+     }
+     function CodeHighlightOff(elem, id)
+     {
+       var target = document.getElementById(id);
+       if(null != target) {
+         elem.classList.remove("code-highlighted");
+         target.classList.remove("code-highlighted");
+       }
+     }
+    /*]]>*///-->
+// @license-end
+</script>
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title">CSC 578 HW 5: Backprop Hyper-Parameters</h1>
+<p>
+(Version 0.01, with much credit again to Prof. Tomuro)
+</p>
+
+<p>
+<b>Graded out of 10 points.</b>
+</p>
+
+<p>
+Do all questions
+</p>
+
+<p>
+<a href="./hw5-files.zip">Here is a zip file with all of the files for this homework</a>
+</p>
+
+<hr />
+<div id="outline-container-org8e23623" class="outline-2">
+<h2 id="org8e23623">Overview</h2>
+<div class="outline-text-2" id="text-org8e23623">
+<p>
+Similar to HW#3, you make required modifications to the NNDL book code and write a small application code.  The objective of the assignment is to enhance you understanding of some of the hyper-parameters of neural networks.
+</p>
+
+<p>
+The original NNDL code "network2.py" is hard-coding several things, including the sigmoid activation function, L2 regularization and the input data format (for MNIST).  In this assignment, we make the code general so that it (implements and) accepts various hyper-parameters as (literally) parameters of the network.
+</p>
+
+<p>
+For the application code, you do some systematic experiments that test various combinations of the hyper-parameter values.
+</p>
+
+<p>
+<b>Note:</b> This homework is not as tightly specified as HW#3.  You may need to <b>do your own research</b> to find out how best to implement a few things.
+</p>
+<hr />
+</div>
+</div>
+<div id="outline-container-orgc6fd785" class="outline-2">
+<h2 id="orgc6fd785">1. Network Code (in <a href="./NN578_network2.py">NN578_network2.py</a>)</h2>
+<div class="outline-text-2" id="text-orgc6fd785">
+</div>
+<div id="outline-container-orgc0f6e15" class="outline-3">
+<h3 id="orgc0f6e15">Intro</h3>
+<div class="outline-text-3" id="text-orgc0f6e15">
+<p>
+For this part, you will need to make modifications to the Network Code, adding some hyper-parameters and modifying some functions.
+</p>
+
+<ul class="org-ul">
+<li>(A) Hyper-parameters:
+
+<ul class="org-ul">
+<li>Cost function
+<ul class="org-ul">
+<li>QuadraticCost, CrossEntropy, LogLikelihood</li>
+</ul></li>
+<li>Activation function
+<ul class="org-ul">
+<li>Sigmoid, Tanh, ReLU, Softmax</li>
+</ul></li>
+<li>Regularization
+<ul class="org-ul">
+<li>L1 and L2</li>
+</ul></li>
+<li>Dropout rate</li>
+</ul></li>
+
+<li>(B) Functions to modify (minimally):
+
+<ul class="org-ul">
+<li>set_parameters()</li>
+<li>feedforward()</li>
+<li>backprop()</li>
+<li>update_mini_batch()</li>
+<li>total_cost()</li>
+</ul></li>
+</ul>
+
+<p>
+Note that you may need to modify other functions additionally to implement Dropout.
+</p>
+
+<hr />
+</div>
+</div>
+
+<div id="outline-container-org30abf9f" class="outline-3">
+<h3 id="org30abf9f">(A) Hyper-parameters</h3>
+<div class="outline-text-3" id="text-org30abf9f">
+<p>
+Hyper-parameters are passed in through keyword arguments in the constructor/init (<b>cost, act_hidden, act_output, regularization</b>, and <b>dropoutpercent</b>). The values are stored in the (additional) instance variables as shown below:
+</p>
+<div class="org-src-container">
+<pre class="src src-python">## Additional keyword arguments for hyper-parameters
+def __init__(self, sizes, cost=CrossEntropyCost, act_hidden=Sigmoid,
+             act_output=None, regularization=None, lmbda=0.0,
+             dropoutpercent=0.0):
+    """The list ``sizes`` contains the number of neurons in the respective
+    layers of the network.  For example, if the list was [2, 3, 1]
+    then it would be a three-layer network, with the first layer
+    containing 2 neurons, the second layer 3 neurons, and the
+    third layer 1 neuron.  The biases and weights for the network
+    are initialized randomly, using
+    ``self.default_weight_initializer`` (see docstring for that method).
+    """
+    self.num_layers = len(sizes)
+    self.sizes = sizes
+    self.default_weight_initializer()
+
+    self.set_parameters(cost, act_hidden, act_output, regularization, lmbda,
+                        dropoutpercent)
+
+## nt: THIS NEEDS CHANGE.
+## nt: convenience function for setting network hyperparameters
+def set_parameters(self, cost=QuadraticCost, act_hidden=Sigmoid,
+                   act_output=None, regularization=None, lmbda=0.0,
+                   dropoutpercent=0.0):
+    self.cost=cost
+    self.act_hidden = act_hidden
+    if act_output == None:
+        self.act_output = self.act_hidden
+    else:
+        self.act_output = act_output
+    self.regularization = regularization
+    self.lmbda = lmbda
+    self.dropoutpercent = dropoutpercent
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org4d8673b" class="outline-4">
+<h4 id="org4d8673b">1. cost</h4>
+<div class="outline-text-4" id="text-org4d8673b">
+<ul class="org-ul">
+<li>This hyper-parameter argument specifies the cost function.</li>
+<li>Options are 'QuadraticCost', 'CrossEntropy', 'LogLikelihood'.</li>
+
+<li>Each one must be implemented as a class.  The scheme for class function is explained later in this document (see <a href="#org0a0432d">Class Function notes</a> below).</li>
+<li><p>
+The class should have two static functions: <b>fn()</b> executes the definition of the function (to compute the cost in during evaluation), and <b>derivative()</b> executes the function's derivative (to compute the error during learning).  No other function such as delta() should be defined in the class because they are not necessary for this assignment.
+</p>
+<ol class="org-ol">
+<li><b>QuadraticCost</b> is fully implemented already in the starter code, as shown below (and you do not need to modify it).</li>
+<li><b>CrossEntropy</b> is partially written (by taking fn() from the original NNDL code "network2.py").  You must add <b>derivative()</b>.</li>
+<li>You will write a whole class <b>LogLikelihood</b>.</li>
+</ol>
+<div class="org-src-container">
+<pre class="src src-python">class QuadraticCost(object):
+
+    @staticmethod
+    def fn(a, y):
+        """Return the cost associated with an output ``a``
+        and desired output ``y``.
+        """
+        return 0.5*np.linalg.norm(y-a)**2
+
+    ## nt: addition
+    @staticmethod
+    def derivative(a, y):
+        """Return the first derivative of the function."""
+        return -(y-a)
+
+class CrossEntropyCost(object):
+
+    @staticmethod
+    def fn(a, y):
+        """Return the cost associated with an output ``a`` 
+        and desired output ``y``.
+        """
+        return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
+
+    @staticmethod
+    def derivative(a, y):
+        """Return the first derivative of the function."""
+        ###
+        ### YOU WRITE YOUR CODE HERE
+        ###
+</pre>
+</div></li>
+</ul>
+
+
+<ul class="org-ul">
+<li>Both functions receive <code>a</code> (activation) and <code>y</code> (target output), which are from one data instance and represented by column vectors.</li>
+<li><code>fn()</code> returns a <b>scalar</b>, while <code>derivative()</code> returns a <b>column vector</b> (containing the cost derivative for each node in the output layer; no multiplication by the derivative of the activation function).</li>
+
+<li><span class="underline">NOTES on <b>LogLikelihood</b></span>:
+<ol class="org-ol">
+<li>This cost function should really be used when <b>'act_output'</b> (the activation function of the output layer) = <b>'Softmax'</b>.  You can check for it if you like (and print warning or abort execution, for instance), but that's not a requirement for the homework.</li>
+<li>For its function and derivative formula, you can look at the <a href="https://depaul.zoom.us/rec/play/-9zBvchXodIQ6F1wN-eVXaAyOZpdjHMcA_4BT6tPrXkkqEQb9frddpOd8p0FfTy7Zl5l4Zj8foa3Gp2O.cwaBIuqKYIq9Kojv?continueMode=true&amp;_x_zm_rtaid=0hXVYogNTWeL_9zcHvWxRA.1603064569512.dec1409ec0c39f5fdf363070d27a6cee&amp;_x_zm_rhtaid=174">week 3 video</a> at about 2:11 in.  For <code>derivative()</code>, you compute the derivative of the node for which the target output is 1.  For other nodes, the value should be 0.</li>
+</ol></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgb444dd4" class="outline-4">
+<h4 id="orgb444dd4">2. act_hidden</h4>
+<div class="outline-text-4" id="text-orgb444dd4">
+<ul class="org-ul">
+<li>This parameter specifies the activation function for nodes on <b>all</b> hidden layers, but EXCLUDING the output layer.</li>
+<li>Parameter options are 'Sigmoid', 'Tanh', 'ReLU', 'Softmax'.</li>
+
+<li><p>
+Each one must be implemented as a class (see <a href="#org0a0432d">Class Function notes</a> below).  The class should have two functions: a static method <b><code>fn()</code></b> executes the definition of the function (to compute the node activation value), and a class method <b><code>derivative()</code></b> executes the function's derivative (to compute the error during learning).
+</p>
+
+<ol class="org-ol">
+<li><b><code>Sigmoid</code></b> is fully implemented already in the starter code, as shown below (and you do not need to modify it).</li>
+<li><b><code>Softmax</code></b> is partially written.  You must add <b><code>derivative()</code></b>.  Note that, since its derivative (already written) returns a 2D matrix instead of a vector (<a href="https://medium.com/@aerinykim/how-to-implement-the-softmax-derivative-independently-from-any-loss-function-ae6d44363a9d">reference</a>), it is handled differently in computing the error/delta in <code>backprop()</code>.  See <a href="#org0a0432d">Class Function notes</a> below.  But for the purpose of writing the class, you only fill in the definition of the function in <b><code>fn()</code></b>.</li>
+<li>For <b>Tanh</b>, a skeleton class is already written.  You complete the class.</li>
+<li>You write a whole class for <b>ReLU</b>.</li>
+</ol>
+
+<div class="org-src-container">
+<pre class="src src-python">class Sigmoid(object):    
+    @staticmethod
+    def fn(z):
+        """The sigmoid function."""
+        return 1.0/(1.0+np.exp(-z))
+
+    @classmethod
+    def derivative(cls,z):
+        """Derivative of the sigmoid function."""
+        return cls.fn(z)*(1-cls.fn(z))
+
+class Softmax(object):
+    @staticmethod
+    # Parameter z is an array of shape (len(z), 1).
+    def fn(z):
+        """The softmax of vector z."""
+        ###
+        ### YOU WRITE YOUR CODE HERE
+        ###
+
+    @classmethod
+    def derivative(cls,z):
+        """Derivative of the softmax.  
+        IMPORTANT: The derivative is an N*N matrix.
+        """
+        a = cls.fn(z) # obtain the softmax vector
+        return np.diagflat(a) - np.dot(a, a.T)
+</pre>
+</div>
+
+<p>
+For those functions, you can look at the <a href="https://depaul.zoom.us/rec/play/-9zBvchXodIQ6F1wN-eVXaAyOZpdjHMcA_4BT6tPrXkkqEQb9frddpOd8p0FfTy7Zl5l4Zj8foa3Gp2O.cwaBIuqKYIq9Kojv?continueMode=true&amp;_x_zm_rtaid=0hXVYogNTWeL_9zcHvWxRA.1603064569512.dec1409ec0c39f5fdf363070d27a6cee&amp;_x_zm_rhtaid=174">Recorded zoom session</a> from Week 3 (about 1:10 in) and/or the Review slides from Week 4 for the definitions.
+</p>
+
+<p>
+Note that, although Softmax is almost never used for hidden layers, we do not have to disallow it in this homework.   
+</p></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org4c168be" class="outline-4">
+<h4 id="org4c168be">3. act_output</h4>
+<div class="outline-text-4" id="text-org4c168be">
+<ul class="org-ul">
+<li>This parameter specifies the activation function for nodes on the output layer.</li>
+<li><p>
+Parameter options are 'Sigmoid', 'Tanh' and 'Softmax'. 
+</p>
+
+<p>
+<span class="underline">NOTES on Tanh</span>:  If Tanh is selected as the activation function for the output layer:
+</p>
+<ol class="org-ol">
+<li>Because the output value will be between 1 and -1 (instead of 1 and 0), the only cost function that goes with Tanh is the quadratic cost.  So if the cost function was set to anything besides 'QuadraticCost', change/overwrite the cost function to QuadraticCost and print a warning (to the user, e.g. "Tanh only accepts 'QuadraticCost' cost function.  Changing to QuadraticCost..").  <b>You must add code to do it by yourself</b>, in <code>set_parameters()</code>.</li>
+
+<li>Note that, in the network startup code (<a href="./NN578_network2.py">NN578_network2.py</a>), some code is added (in <code>SGD()</code>) that changes the dataset when the output layer's activation is Tanh, in particular to make the target y values to be 1 or -1 (instead of 1 or 0).  It is already written for you, so you don't need to be concerned about the data.</li>
+</ol></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orga653eb9" class="outline-4">
+<h4 id="orga653eb9">4. regularization:</h4>
+<div class="outline-text-4" id="text-orga653eb9">
+<ul class="org-ul">
+<li>This parameter specifies the regularization method.</li>
+<li>Parameter options are 'L2' and 'L1'.</li>
+<li>The selected method is applied to all hidden layers and the output layer.</li>
+
+<li><p>
+You can implement them in any way you like, for example as function classes or inline if-else conditionals.  For definitions/formulas and explanation, see the <a href="https://depaul.zoom.us/rec/share/HUia84Y0b_OkQT2c9n39dGkUlyvNU0LqtmnnCz7gQ0vJ50hF_up4sU0YWa4ABBQ.SS5hVQmvqRtOWFPa">Avoiding overfitting</a> video from Week 3 or the review slides from Week 4.
+</p>
+
+<p>
+<span class="underline">IMPORTANT</span>: The start-up code has L2 hard-coded in (unchanged from the original NNDL code for this part).  <b>You make necessary changes to the code by yourself</b> to incorporate the two methods.
+</p></li>
+<li><p>
+The regularization is relevant at two places in the backprop algorithm:
+</p>
+<ol class="org-ol">
+<li>During training, when weights are adjusted at the end of a mini-bath &#x2013; the function <code>update_mini_batch()</code>.</li>
+<li>During evaluation, when the cost is computed &#x2013; the function <code>total_cost()</code>.</li>
+</ol>
+
+<p>
+NOTE: Both of those functions have the parameter <b>lmbda</b>, passed in from the function <code>SGD()</code>.  You utilize its value in implementing the regularizations.
+</p></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-org7e1b825" class="outline-4">
+<h4 id="org7e1b825">5. dropoutpercent</h4>
+<div class="outline-text-4" id="text-org7e1b825">
+<ul class="org-ul">
+<li>This parameter specifies the percentage of dropout.</li>
+<li>The value is between 0 and 1.  For example, 0.4 means 40% of the nodes on a layer are dropped (or made inaccessible).</li>
+<li>Dropout consists in randomly setting a fraction rate of units in a layer to 0 at each update during training time, which helps prevent overfitting.</li>
+<li>Assume the same dropout percentage is applied to <b>all hidden layers</b>.  <i>Dropout should not be applied to input or output layer.</i></li>
+<li>You can implement the parameter in any way you like.  <b>You make necessary changes to the code by yourself, wherever needed.</b></li>
+<li>Many dropout schemes have been proposed in neural networks.  For this assignment, you implement the following scheme.
+<ol class="org-ol">
+<li>Dropout is applied during the <b>training phase only</b>.  No dropout is applied during the testing/evaluation phrase.</li>
+<li>Use the same dropout nodes during one <b>mini-batch</b>.  That means you have to store which nodes were used/dropped somewhere else.  Think about it and implement in your way.</li>
+<li><p>
+<b>Scale</b> the output values of the layer.  This scheme is explained at <a href="https://wiseodd.github.io/techblog/2016/06/25/dropout/">this site</a>.  In particular, the following code is very useful. The first line is generating a dropout mask (<code>u1</code>) and the second line is applying the mask to the activation of a hidden layer (<code>h1</code>) during the <b>forward</b> propagation phase in the backprop function.
+</p>
+<div class="org-src-container">
+<pre class="src src-python"># Dropout training, notice the scaling of 1/p
+u1 = np.random.binomial(1, p, size=h1.shape) / p
+h1 *= u1
+</pre>
+</div>
+
+<p>
+Then during the <b>backward</b> propagation phase, you apply the mask to the delta of a hidden layer (<code>dh1</code>).    This is necessary because, since a dropout mask is applied as an additional multiplier (function) after the activation function, it essentially became a constant coefficient of the activation function (i.e., <code>c*a(z)</code>), and shows up in the derivative of that function &#x2013;  Let \(f(z) = c*a(z)\), then \(f'(z) = c*a'(z)\).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">dh1 *= u1 
+</pre>
+</div>
+
+<p>
+<span class="underline">IMPORTANT NOTES</span>:
+</p>
+
+<ul class="org-ul">
+<li>The variable <code>p</code> above is the ratio of nodes to RETAIN, not to remove.   So essentially, <code>p = 1 - self.dropoutpercent</code>.</li>
+<li><code>np.random.binomial()</code> is <b>probabilistic</b>, so does not guarantee the p proportion of success.  But for the purpose of the assignment, it's fine to use it (i.e., the code above).  However, if you like to implement correctly, you can use <code>random.sample()</code> method in Python's standard library.</li>
+<li>During forward propagation, dropout should be applied to/after <b>activation</b>, NOT to the z/weighted sum (e.g. sigma(0) = 0.5, which is not right or convenient here).</li>
+<li>During backward propagation, dropout should be applied to the delta (the error at a given hidden layer).</li>
+</ul></li>
+</ol></li>
+</ul>
+</div>
+</div>
+
+
+
+<div id="outline-container-org0a0432d" class="outline-4">
+<h4 id="org0a0432d">Class Function notes</h4>
+<div class="outline-text-4" id="text-org0a0432d">
+<p>
+Static or class functions in a class can be called through the class name.  When a class name is bound to an instance variable, you can invoke a specific static/class function in the class by prefixing the instance variable.  For example, here is a line in the function <code>backprop()</code>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">a_prime = (self.act_output).derivative(zs[-1])
+</pre>
+</div>
+
+<p>
+So whatever <code>self.act_output</code> is bound to (e.g. Sigmoid, Tanh, ReLU), the function <code>derivative()</code> defined inside the class is being invoked.
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org581fd27" class="outline-3">
+<h3 id="org581fd27">(B) Functions to modify.</h3>
+<div class="outline-text-3" id="text-org581fd27">
+<p>
+In addition to <code>set_parameters(), feedforward(), backprop(), update_mini_batch()</code> and <code>total_cost()</code>, you need to modify other parts of the code to implement <b>dropout</b>.  It's up to you to figure out and decide. 
+</p>
+
+<p>
+<i>Whatever you did, you should <b>describe and explain</b> it in the documentation.</i>  You may not get full points if modifications you made were not explained sufficiently.
+</p>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orge2c79be" class="outline-2">
+<h2 id="orge2c79be">2. Application code (Start-up code: <a href="./578hw5.ipynb">578hw5.ipynb</a>,html: <a href="./578hw5.html">578hw5.html</a>)</h2>
+<div class="outline-text-2" id="text-orge2c79be">
+<p>
+Write Jupyter Notebook code to do these experiments using the iris dataset.  Ensure your code works for each experiment, and show the output in an Jupyter notebook.
+</p>
+
+<p>
+Just like HW#3, use the iris dataset <a href="./iris.csv">iris.csv</a> and the <a href="./iris-423.dat">iris-423.dat</a> network file to create an initial network.  You may play with the learning rate (eta / &eta;) and mini_batch size on your own.
+</p>
+
+<p>
+Do the following experiments.  For each experiment, train the network using <a href="./iris-train-1.csv">iris-train-1.csv</a> for <b>15 epochs</b> (only) and test it using <a href="./iris-test-1.csv">iris-test-1.csv</a>.
+</p>
+
+<p>
+Note the output results in the right-most column were generated on <a href="https://labs.cognitiveclass.ai/">IBM CognitiveClassLab</a>.
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">&#xa0;</th>
+<th scope="col" class="org-left">act_hidden</th>
+<th scope="col" class="org-left">act_output</th>
+<th scope="col" class="org-left">cost</th>
+<th scope="col" class="org-left">regularization</th>
+<th scope="col" class="org-right">lmbda</th>
+<th scope="col" class="org-right">dropout</th>
+<th scope="col" class="org-left">OUTPUT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">1</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-1.txt">Result-1.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">2</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">CrossEntropy</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-2.txt">Result-2.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">3</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Softmax</td>
+<td class="org-left">CrossEntropy</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-3.txt">Result-3.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">4</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Softmax</td>
+<td class="org-left">LogLikelihood</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-4.txt">Result-4.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">5</td>
+<td class="org-left">ReLU</td>
+<td class="org-left">Softmax</td>
+<td class="org-left">CrossEntropy</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-5.txt">Result-5.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">6</td>
+<td class="org-left">ReLU</td>
+<td class="org-left">Softmax</td>
+<td class="org-left">LogLikelihood</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-6.txt">Result-6.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">7</td>
+<td class="org-left">Tanh</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-7.txt">Result-7.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">8</td>
+<td class="org-left">Tanh</td>
+<td class="org-left">Tanh</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-8.txt">Result-8.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">9</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">L2</td>
+<td class="org-right">3.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-9.txt">Result-9.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">10</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">L1</td>
+<td class="org-right">3.0</td>
+<td class="org-right">0.0</td>
+<td class="org-left"><a href="./Result-10.txt">Result-10.txt</a></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+For the experiments below, use <a href="./iris4-20-7-3.dat">iris4-20-7-3.dat</a>. Note that results may vary for these experiments because dropout nodes are randomly (but probabilistically) chosen.
+</p>
+
+<table>
+
+
+<colgroup>
+<col  class="org-right" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-right">&#xa0;</th>
+<th scope="col" class="org-left">act_hidden</th>
+<th scope="col" class="org-left">act_output</th>
+<th scope="col" class="org-left">cost</th>
+<th scope="col" class="org-left">regularization</th>
+<th scope="col" class="org-right">lmbda</th>
+<th scope="col" class="org-right">dropout</th>
+<th scope="col" class="org-left">OUTPUT</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-right">11</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.1</td>
+<td class="org-left"><a href="./Result-11.txt">Result-11.txt</a></td>
+</tr>
+
+<tr>
+<td class="org-right">12</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Sigmoid</td>
+<td class="org-left">Quadratic</td>
+<td class="org-left">(default)</td>
+<td class="org-right">0.0</td>
+<td class="org-right">0.5</td>
+<td class="org-left"><a href="./Result-12.txt">Result-12.txt</a></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+Note that those are the absolute minimal experiments.  Although not required for this homework, you should try other combinations of hyper-parameters to test your code more thoroughly and rigorously.
+</p>
+
+<hr />
+</div>
+</div>
+<div id="outline-container-orgd1435b1" class="outline-2">
+<h2 id="orgd1435b1">Submission</h2>
+<div class="outline-text-2" id="text-orgd1435b1">
+<ol class="org-ol">
+<li>Completed "NN578_network2.py", and the application Notebook file and its html version.  Be sure to add your <b>name, course/section number</b> and the <b>assignment name</b> at the top of all code files.</li>
+<li>Documentation. 
+<ul class="org-ul">
+<li><b>In pdf only.</b></li>
+<li>A <i>minimum</i> of 2.0 pages (i.e., two pages filled, and some in the next page).</li>
+<li>Write as much as you can.  I consider terse answers insufficient, therefore won't give a full credit when I grade.</li>
+<li>Create a presentable document. Don't make me work hard to find the information I asked for. (There are a lot of these to read.)</li>
+<li>Content should include:
+<ul class="org-ul">
+<li>Your <b>name, course/section number</b> and the <b>assignment name</b> at the top of the file.</li>
+<li>Then, in separate, labeled sections, include:
+<dl class="org-dl">
+<dt>Experiment results</dt><dd>Whether or not your results for the first <b>10 experiments</b> in the 'Application code' section above matched with the given results.  If your results were different, describe the discrepancies and what you speculated the discrepancies came from.</dd>
+<dt>Implementation</dt><dd>Explain how you implemented each of the requirements, and for each if they were <b>Complete</b>, meaning you did the code and verified that it worked; <b>Not attempted</b>, meaning you didn't get there; or <b>Partial</b>, meaning that you have some code but it did not completely work, and explain why.  Give as detailed explanations as possible.  In particular, be sure to explain everything you did to implement Dropout correctly.</dd>
+<dt>Reflections</dt><dd>Your reaction and reflection on this assignment overall (e.g. difficulty level, challenges you had).</dd>
+</dl></li>
+</ul></li>
+<li>Write as much as you can.  Try to make a <b>thorough and well-organized report</b>.  It's not to impress me; it's for your exercise.</li>
+<li>Also some kind of graphs/plots are nice (to make a more professional presentation), although no extra credits are given this time.</li>
+</ul></li>
+</ol>
+
+
+
+<p>
+DO NOT Zip the files &#x2013; Submit files separately.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<hr/><p class="author">Fall 2020 (<a href="mailto:"></a>) 2020-10-18 Sun 19:19</p>
+</div>
+</body>
+</html>

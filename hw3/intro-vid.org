@@ -1,0 +1,22 @@
+* Some general background about Homework 3 
+  - *But you should carefully read the (rather lengthy) description.*
+    - The description is now up on the course homepage
+    - Quite a few linked files -- let me know if any of the links go wrong.
+  - Builds on code described (quite well) in NNDL 1 and some math in NNDL 3, so you'll need to consult these.
+  - Use python (3 has been tested and is preferred) and jupyter notebooks.
+
+* What you'll do: 2 main parts
+  - Make some modifications (as described in detail) to extend the python code from NNDL.
+  - Create a notebook (application) in Jupyter which applies it to a different task from MNIST.
+
+* Resources
+  - Links to Jupyter and tutorials on it under Tools on the course homepage
+  - General: Chollet chapter linked on homepage
+
+* Also extended the deadline
+  To Thursday Oct 8
+
+** but
+
+  1. please don't put it off -- it's programming, not difficult, but it might take some time
+  2. don't think you have to wait to start working on it until after the Monday class just before then

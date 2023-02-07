@@ -1,0 +1,193 @@
+# -*- org-export-html-postamble:t; -*-
+#+TITLE: CSC 578 HW 3: Implementation of Neural Networks
+#+DATE: 
+#+EMAIL: 
+#+AUTHOR: Fall 2020
+
+#+OPTIONS:   H:3 num:nil toc:nil \n:nil @:t ::t |:t ^:nil -:t f:t *:t <:t 
+#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../assignstyles.css" />
+
+Version 0.2b (with much credit to Prof. Tomuro), including here a link to *[[file:hw3.zip][hw3.zip]]*, a zip file with all the other files in one place.
+
+*Graded out of 10 points.*
+
+* TODO COMMENT
+  - [ ] Intro video
+    - Using jupyter, python 3(?)
+    - Colab (try it without, and see what happens)
+    - Do they need an intro to the NNDL code?
+  - [X] Does it work on py 2.7? Don't know, but just say it works on 3.
+  - [X] What's the diff between this and original (mentioned in descr)?
+    - some minor formatting in code
+    - range instead of xrange (which doesn't work in py3)
+    - no shuffle here
+  - [ ] and Keith's - version? Don't really need to find out.
+  - [X] Checklist to be included at the top (I'm going without)
+
+  First, insert the following table into your document, indicating how complete your submitted implementation was.  For each of the tasks, indicate if it was *Complete* (and correct, as verified by comparing with the relevant output file), *Not Attempted*, or *Partial* (with an explanation). For example, if you completed the modifications to =evaluate()=, just write "Complete" in the second column of the first row.
+
+| Task                 | Completion | Explanation |
+|----------------------+------------+-------------|
+| Mods to =evaluate=   |            |             |
+| SGD  printing        |            |             |
+| SGD return values    |            |             |
+| Early stopping       |            |             |
+| backprop activations |            |             |
+| plots                |            |             |
+
+
+
+* Introduction
+
+[[https://depaul.zoom.us/rec/share/-zonuJrt0IH8rDJpzLi8AEC7o1c_5q8YOOmoMYD6Ti2B6ak4-PJhVowd0Jwwp9pS.ALy2yPgsNCBpTScu][Video introduction to the project]]
+
+Your task in this assignment is to make some modifications to the NNDL book code "network.py" (in Chapter 1) and write a small application to use it.  The objective of the assignment is to help you strengthen your understanding of the concepts and mathematics of neural networks through implementation. 
+
+The amount of code you write for this assignment won't be much.  However, understanding the code written by somebody else makes you learn not only the details of the code itself but the concepts implemented in the code.  This is a great exercise to develop your programming skills as well.
+
+** Deliverables: 
+
+Submit these two things.  More instructions are found at the end of this page.
+
+    1. Code files
+    2. A documentation file
+
+* Overview
+
+The overall picture of your task is to:
+
+  1. Install and test a Jupyter notebook application running the (slightly modified) NNDL network code.
+  2. Make required modifications to the network code, and test it with a jupyter notebook.
+  3. Create a jupyter notebook application that uses your modified network code.
+
+
+* Part 1: Initial tests of application notebook
+
+Download the network definition code [[file:./NN578_network.py][NN578_network.py]], the iris dataset: [[file:./iris.csv][iris.csv]], the saved network file: [[file:./iris-423.dat][iris-423.dat]], and the initial test application code (a Jupyter Notebook file): [[file:./578hw3-initial.ipynb][578hw3-initial.ipynb]]. Run all cells in the initial application notebook.  Execution should succeed, and you should see the output for the last two cells like shown in [[file:578hw3-initial.html][this html file]], perhaps also with a deprecation warning.
+
+If you are using Google CoLab, I recommend you create a new folder and put all necessary files there. Also here is the application notebook file [[file:./578hw3-initial-CoLab.ipynb][578hw3-initial-CoLab.ipynb]] and [[file:./578hw3-initial-CoLab.ipynb - Colaboratory.pdf][a pdf file]] of the output.
+
+
+* Part 2: MODIFICATIONS to be made in the network code 
+
+Here, you will extend the network definition code ([[file:NN578_network.py][NN578_network.py]]) in several ways. (You may want to keep a copy of the original before you modify it.)
+
+*** IMPORTANT NOTES:
+    - The network definition code ([[file:./NN578_network.py][NN578_network.py]]) is pretty much the same as the book's original code 'network.py', but with *ONE IMPORTANT CHANGE* -- The target variable (/y/) of a dataset is assumed to be a *vector* (rather than a scalar), in particular in the form of so-called *'one-hot-vector'* representation, which is a list of all 0's with exactly one 1 for the target class.  For example, if there were four target classes in the given dataset (i.e., a "multiclass classification problem") and a particular instance's target class was three (the /third/ one), the target would be encoded as [0, 0, 1, 0].  This encoding scheme is also called a /'categorical'/ format. (There's also a minor tweak: It should work in python 3, but hasn't been tested in python2.)
+     
+    - Since a python script file is a static binding in Jupyter notebook (by an import statement), when you make changes in the network .py file (=NN578_network.py=), you must *re-start the kernel (runtime)* of the application (=578hw3.ipynb=) every time.
+
+*** Modifications:
+  1. Edit the function =evaluate()= (which is called after an epoch is complete) so that, in addition to accuracy, it computes the Mean Squared Error (MSE), Cross-entropy and log-likelihood.  The function should return those five values (correctcount, accuracy, MSE, Cross-entropy and log-likelihood) in a list.
+
+     MSE is described in [[http://neuralnetworksanddeeplearning.com/chap1.html][NNDL 1]] (Eq. (6)), and Cross-entropy is in [[http://neuralnetworksanddeeplearning.com/chap3.html][NNDL 3]] (initially in Eq. (57), and more precisely in Eq. (63)).  Log likelihood (See * below) is in  [[http://neuralnetworksanddeeplearning.com/chap3.html][NNDL 3]]  (Eq. (80)), but note that the formula is MISSING $1/n$ in the beginning, which divides the sum by the number of instances in the dataset to give the average.
+
+     NOTE: Each cost function must return a *scalar* value, NOT an array.  You should ensure your code is indeed doing so correctly. (Hint: you could =assert= the =shape= of that variable's value.)
+
+     - As a hint, for MSE and Cross-entropy, you can look at the two function classes (QuadraticCost and CrossEntropyCost) in another book code file [[./network2.py][network2.py]] (the original version; to be modified in a homework later in the course).
+
+     - ($*$) ANOTHER NOTE on *log likelihood*.  For this function, you have to pick out the activation value of a node for which the target =y= array has a one (represented by a so-called (binarized) 'one-hot vector').  Assuming you first get the index to the node (by calling =argmax= to the target =y=), then give the index to the output layer's activation array, you will have a problem -- Numpy's subscripting (with []) returns an array with one element, instead of a scalar, *because the activation values of a layer are stored in column vectors (rather than row vectors) in our code*.  Look at [[./Demo-NumpyIndex.html][this code snippet]] for a demo of the behavior and a few solution ideas to get a scalar from the array.
+
+     Note that NO PRINTING takes place inside the function =evaluate()=.  It only _returns_ the five values.
+
+  2. Edit the =SGD()= function to include the *three* modifications described below:
+
+     * Call =evaluate()= for =training_data=, at the end of every epoch, and print the returned results in the format below.  /It should also/ call =evaluate()= for =test_data= as well as the training set if it is passed in as an argument.  See the formatting example below.  Note that if =test_data= is not passed in, you omit the second line in the output for each epoch. 
+
+        #+ATTR_HTML: :style font-size: 70%
+        #+BEGIN_EXAMPLE
+           [Epoch 0] Training: MSE=aaaa, CE=xxxx, LL=yyyy, Correct: zzz/nnn, Acc: cccc
+                     Test:     MSE=bbbb, CE=xxxx, LL=yyyy, Correct: zzz/nnn, Acc: cccc
+           [Epoch 1] Training: MSE=aaaa, CE=xxxx, LL=yyyy, Correct: zzz/nnn, Acc: cccc
+                     Test:     MSE=bbbb, CE=xxxx, LL=yyyy, Correct: zzz/nnn, Acc: cccc
+           ...
+        #+END_EXAMPLE
+
+           Note that you /only/ call =evaluate()= at the end of each epoch (i.e., after all minibatches are processed), for the training data, and for the test data if provided.
+
+     * Collect the performance results returned from =evaluate()= for all epochs for =training_data= and =test_data= into individual lists, and return the two lists in a list.  Each list (for one dataset, train/test) will be like a /history/, since it collected the performance results for every epoch for the dataset (and it will be a list of lists, where each element is a list of size 5, and there are $n$ such lists where $n$ is the number of epochs).
+
+        Note that, if =test_data= was not provided, the collected list for =test_data= will be an empty list.
+
+     * Add a function parameter =stopaccuracy= with a /default value/ of 1.0 (REQUIRED).  This parameter will be used to do *Early Stopping*, which stops looping through the epochs if the classification accuracy for the /training data/ becomes >= the =stopaccuracy= parameter.  Note: the value is assumed to be between 0 and 1.0 (where 1.0 means 100% accuracy).  You stop the loop at the end of the epoch loop, after =evaluate(test_data)= is called and its results are printed.
+
+  3. Edit the function =backprop()= so that the local variable =activations= is initially allocated with a structure which holds the activation value of ALL layers in the network from the start, rather than the current code which starts with just the input layer (by =activations = [x]=) and appends one layer at a time (by =activations.append(activation)=). 
+
+    For example, if the network size was [4, 20, 3], you create a list containing three Numpy arrays whose shapes are (4,1), (20,1) and (3,1) respectively.  Then during the forward-propagation, activation values of each layer are copied/assigned into the respective array.
+
+** Initial testing of modifications
+
+Test your modified network definition code with this next test application notebook: [[file:./578hw3-checktestset.ipynb][578hw3-checktestset.ipynb]].  Execution should succeed, and you should see the output for the last two cells as shown in [[file:./578hw3-checktestset.html][this html file]]. (This was generated on IBM CognitiveLabs).
+
+
+* Part 3: Further Application and Testing
+
+After passing the tests in the previous two steps, take the start-up file [[file:578hw3.ipynb][578hw3.ipynb]] ([[file:578hw3.html][html)]] and add code that implements the requirements below.  Then submit the notebook file, along with the network definition code.  Note that this is a Jupyter Notebook file; DO NOT change it to a python script file (.py). 
+
+Your task is to add a collection of code snippets that do the following individual tasks in order (rather than an entire coherent program).
+
+  1. Further check your network definition code which includes the Modifications described above in Part 2, i.e., the changes to =evaluate()=, =SGD= (printing and return value), =backprop()= and /Early Stopping/.  Steps are:
+
+     - First, train the =net1= network (created in the initial steps of the "start-up file" from =iris-423.dat=) by training it on the iris data (=iris.csv=) by calling =SGD()= for a maximum of *100 epochs, minibatch_size=5, eta=0.5*.  No specific value should be passed in for =stopaccuracy= to take the default (1.0). 
+
+      Your results should match with the numbers shown in this file: [[file:Results-1.txt][Results-1.txt]]. (This was generated on IBM CognitiveLabs.)
+
+     - Then, create another network by reloading the same saved network and train the network with the same three hyperparameter values AND additionally with =stopaccuracy=0.75=.  The output results will be the same from the previous run, but should stop after the training accuracy reached above 0.75.
+
+  2. Check your code with a different, deeper network, in particular the =4-20-7-3= network.  Use this network file [[file:iris4-20-7-3.dat][iris4-20-7-3.dat]].
+
+     - Create a new network by loading the saved =4-20-7-3= network, then train the network using the same hyperparameters from the last run =(epochs=100, minibatch_size=5, eta=0.5, stopaccuracy=0.75)=.  Your results should match with the numbers shown in this file -- [[file:Results-2.txt][Results-2.txt]].  (This was generated on IBM CognitiveLabs).
+
+  3. Visualize the network learning by creating the following plots.  A few preliminary steps:
+
+     1. First split the dataset randomly into 70% training and 30% test. 
+
+       There are many ways to do it, but a simple way is recommended (rather than using a function in packages such as sklearn).  For example, you first shuffle the instances in the original dataset, and take the first 70% as the training and the rest as the test.
+
+     2. Then create a new network (which has randomly initialized weights) of the size =[4,20,3]=.  You can create a new network by simply calling the constructor in this way:
+
+         #+ATTR_HTML: :style font-size: 80%
+         #+BEGIN_EXAMPLE
+         # Create a new network
+         net4 = network.Network([4,20,3])
+         #+END_EXAMPLE
+
+     3. Then train the network for 50 epochs with =eta = 0.1= and the =minibatch size = 5= (and take the default for =stopaccuracy=).  Save the results.
+
+     4. Use the results to plot two types of plots as shown below.  Note that, since the initial weights are randomly assigned now, you may want to re-train several times until you see 'interesting' results. 
+
+        You can use any library to plot.  If you do not have experience plotting charts in Python, it's quite easy to do.  Here are some sites I recommend: [[http://www.datasciencemadesimple.com/line-plot-line-chart-in-python-legends/][(1)]]: simple and good examples, [[https://matplotlib.org/users/pyplot_tutorial.html][(2)]]: matplotlib tutorial, [[https://www.tensorflow.org/tutorials/keras/basic_text_classification][(3)]] : Keras code example.
+
+        Note that you may need to convert Python lists to Numpy arrays, and reshape Numpy arrays (especially to ensure a row or column vector: [1,n] or [n,1]).  Figure out what works for your code.
+
+        1. One plot that compares the error curves of the three cost functions for the training set.
+
+           Note the curves for CrossEntropy and LogLikelihood may not be smoothly decreasing -- it could well be the case because the backprop algorithm used MSE as the cost function to minimize error.  But at least it should be the case where LogLikelihood is always below CrossEntropy (and you should know why). (Click to see larger images of the plots.)
+
+           [[file:hw2-temp1.png][file:hw2-temp1_small.png]] 
+
+        2. Three plots, one for each cost function, that shows the error for training vs. test (so that we can inspect for overfitting).
+
+           [[file:hw2-MSE.png][file:hw2-MSE_small.png]] [[file:hw2-CE.png][file:hw2-CE_small.png]] [[file:hw2-LL.png][file:hw2-LL_small.png]] 
+
+* Submission
+
+  1. Two code files (your modified =NN578_network.py= and =578hw3.ipynb= files) /and/ the *html version* of the latter Notebook file.
+
+     - Be sure to add your *name, course/section number* and *the assignment name* at the top of _BOTH_ code files.  Files without this information will be returned ungraded.
+
+     - Don't forget the html file of the application code file.
+
+  2. A documentation write-up. 
+     - *In pdf (only).*
+     - Minimum *1.5 pages* (i.e., one full page and a half of the second page is minimally filled).
+     - Write as much as you can to demonstrate to me that you earned the points.  I consider terse answers insufficient. Full credit will not be given if information is missing or implied.  Create a presentable document. Don't make me work hard to find the information I asked for. (I've got a lot of these to read.)
+     - Content should include, first, Your *name, course/section number* and the *assignment name* at the top of the file. And then in *separate, labeled sections*, reports on your success in the following tasks. Start each section with one of these three indicators: *Complete*, meaning you did the code and verified that it worked; *Not attempted*, meaning you didn't get there; or *Partial*, meaning that you have some code but it did not completely work, and explain why.
+       1. The "Initial testing" at the end of Part 2 (which checks for the test set, [[file:578hw3-checktestset.ipynb][578hw3-checktestset]]).  State whether or not the output of your code matched the one shown in [[file:578hw3-checktestset.html][the html file]].
+       2. Modifications A and B matching  [[file:Results-1.txt][Results-1.txt]]. If your results were different, describe the discrepancies and speculate where the discrepancies came from.
+       3. Testing with the deeper network, matching [[file:Results-2.txt][Results-2.txt]] (explaining any discrepancies).
+       4. Present the visualization results (plots describe above).  Add your comments/analysis as well.
+       5. Your reaction and reflection on this assignment overall (e.g. difficulty level, challenges you had, future work).  *Describe in DETAIL.*
+
+DO NOT ZIP YOUR CODE OR WRITE UP. SUBMIT EACH FILE SEPARATELY.
